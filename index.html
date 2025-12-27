@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1c1c1c">
+<meta charset="UTF-8">
+<title>ATA 36 — Квиз</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+    body {
+        background: #1c1c1c;
+        color: #f0f0f0;
+        font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+        margin: 0;
+        padding: 16px;
+        text-align: center;
+    }
+    .container {
+        max-width: 500px;
+        margin: 0 auto;
+        background: #2a2a2a;
+        padding: 20px 16px;
+        border-radius: 12px;
+        border: 2px solid #ffcc00;
+        box-shadow: 0 0 15px rgba(0,0,0,0.6);
+    }
+    .title {
+        font-size: 20px;
+        margin-bottom: 8px;
+        color: #ffcc00;
+    }
+    .progress {
+        font-size: 14px;
+        margin-bottom: 12px;
+        color: #cccccc;
+    }
+    .question {
+        font-size: 17px;
+        margin-bottom: 16px;
+        color: #ffcc00;
+        text-align: left;
+    }
+    .btn {
+        display: block;
+        width: 100%;
+        padding: 12px;
+        margin: 6px 0;
+        background: #3a3a3a;
+        color: white;
+        border: 1px solid #555;
+        border-radius: 8px;
+        font-size: 15px;
+        text-align: left;
+    }
+    .btn:active {
+        transform: scale(0.98);
+    }
+    .correct {
+        background: #2e7d32 !important;
+        border-color: #66bb6a !important;
+    }
+    .wrong {
+        background: #8b0000 !important;
+        border-color: #ff4444 !important;
+    }
+    #explanation {
+        margin-top: 12px;
+        font-size: 15px;
+        color: #ffcc00;
+        min-height: 40px;
+        text-align: left;
+    }
+    #nextBtn {
+        margin-top: 16px;
+        padding: 12px;
+        width: 100%;
+        background: #ffcc00;
+        color: #000;
+        font-size: 16px;
+        border: none;
+        border-radius: 8px;
+        display: none;
+    }
+    #scoreBox {
+        margin-top: 8px;
+        font-size: 14px;
+        color: #cccccc;
+        text-align: right;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="title">ATA 36 — Пневмосистема ATR 72-500</div>
+    <div id="progress" class="progress"></div>
+    <div id="questionBox" class="question"></div>
+    <div id="answers"></div>
+    <div id="explanation"></div>
+    <button id="nextBtn" onclick="nextQuestion()">Далее</button>
+    <div id="scoreBox"></div>
+</div>
+
+<script>
+const quiz = [
+    {
+        q: "Какие системы питаются от пневмосистемы?",
+        a: [
+            "Кондиционирование, вентиляция, наддув, ПОС",
+            "Только кондиционирование и наддув",
+            "Только ПОС",
+            "Только кондиционирование"
+        ],
+        correct: 0,
+        expCorrect: "Верно: пневмосистема подаёт воздух на кондиционирование, вентиляцию, наддув кабины и противообледенительную систему.",
+        expWrong: "Нужно запомнить: пневмосистема не только для кондиционирования. Она питает кондиционирование, вентиляцию, наддув и противообледенительную систему. Если ты выбираешь только одну или две системы — ты недооцениваешь роль bleed air."
+    },
+    {
+        q: "Откуда берётся LP (Low Pressure) воздух на ATR 72-500?",
+        a: [
+            "С компрессора низкого давления (КНД) двигателя",
+            "С компрессора высокого давления (КВД) двигателя",
+            "С APU напрямую, минуя двигатель",
+            "С компрессора кондиционера (PACK)"
+        ],
+        correct: 0,
+        expCorrect: "Да, LP bleed берётся с КНД — это основной, более экономичный источник bleed air.",
+        expWrong: "Если ты выбрал HP или APU — помни: LP воздух берётся именно с КНД. HP (с КВД) включается только при падении LP давления. PACK — это потребитель, а не источник."
+    },
+    {
+        q: "При каком давлении в полёте происходит автоматическое переключение с LP на HP?",
+        a: [
+            "Ниже 25 psi",
+            "Ниже 38 psi",
+            "Ниже 70 psi",
+            "Выше 80 psi"
+        ],
+        correct: 0,
+        expCorrect: "Да, при падении давления ниже 25 psi система переходит на HP bleed, чтобы сохранить нужный расход.",
+        expWrong: "Ключевой порог — около 25 psi. Если давление LP ниже этого уровня, автоматически подключается HP порт. Числа 38, 70 и 80 psi относятся к другим порогам (overpressure и т.п.)."
+    },
+    {
+        q: "Сколько overtemperature switches установлено на одну сторону пневмосистемы?",
+        a: ["2", "1", "3", "4"],
+        correct: 0,
+        expCorrect: "Верно: два датчика перегрева на каждую сторону позволяют надёжно контролировать температуру bleed air.",
+        expWrong: "На каждую сторону ставят не один и не три–четыре, а именно два датчика перегрева — это компромисс между отказоустойчивостью и сложностью."
+    },
+    {
+        q: "На какой температуре срабатывает overtemperature switch bleed air?",
+        a: ["Около 274°C", "Около 153°C", "Около 200°C", "Около 100°C"],
+        correct: 0,
+        expCorrect: "Да, порог около 274°C — при большей температуре bleed считается небезопасным.",
+        expWrong: "Важно различать температуры: ~153°C — это типично для leak loop, а ~274°C — именно порог срабатывания overtemperature switch bleed air."
+    },
+    {
+        q: "Что делает overpressure switch при давлении выше 80 psi?",
+        a: [
+            "Командует закрытие Bleed Shut-Off Valve (BSOV)",
+            "Открывает HP Bleed Valve",
+            "Отключает PACK",
+            "Открывает crossfeed"
+        ],
+        correct: 0,
+        expCorrect: "Да, при давлении выше 80 psi BSOV закрывается, чтобы защитить систему от избыточного давления.",
+        expWrong: "При давлении свыше 80 psi задача — защитить систему. Для этого закрывается Bleed Shut-Off Valve. Это не про включение паков или crossfeed."
+    },
+    {
+        q: "Где проходят leak detection loops пневмосистемы?",
+        a: [
+            "Передняя кромка крыла, стык крыла/фюзеляжа, боковые панели, подполье, зона паков",
+            "Только в крыле",
+            "Только в районе двигателей",
+            "Только в зоне паков"
+        ],
+        correct: 0,
+        expCorrect: "Верно: leak loops покрывают все ключевые зоны, где проходит горячий bleed air и возможна утечка.",
+        expWrong: "Leak loop — это не только крыло или пак. Они идут по передней кромке крыла, стыку крыла и фюзеляжа, боковым панелям, подполью и зоне паков — там, где горячий воздух может повредить конструкцию."
+    },
+    {
+        q: "Задача Bleed Air Check Valve между двигателями:",
+        a: [
+            "Не допустить перетекания bleed air между ENG 1 и ENG 2",
+            "Регулировать давление bleed air",
+            "Сбрасывать избыточное давление наружу",
+            "Питать PACK при отказе обоих двигателей"
+        ],
+        correct: 0,
+        expCorrect: "Да, check valve — это про односторонний поток, он не даёт воздуху гулять от одного двигателя к другому.",
+        expWrong: "Bleed Air Check Valve — не регулятор давления и не сбросной клапан. Его задача — односторонний поток и защита от перетекания между сторонами."
+    },
+    {
+        q: "Как работает Crossbleed Valve на ATR 72-500?",
+        a: [
+            "Может использоваться и на земле, и в воздухе по команде экипажа",
+            "Только автоматически в полёте",
+            "Только на земле при запуске",
+            "Только при отказе APU"
+        ],
+        correct: 0,
+        expCorrect: "Верно: crossbleed — управляемый экипажем клапан, доступен и на земле, и в воздухе.",
+        expWrong: "Crossbleed не жёстко привязан только к земле или только к полёту. Он даёт возможность переподать bleed с одной стороны на другую по решению экипажа."
+    },
+    {
+        q: "При каком положении PL HP Bleed Valve закрывается по логике защиты?",
+        a: [
+            "PL > 37°",
+            "PL < 13°",
+            "PL > 60°",
+            "PL в DISC"
+        ],
+        correct: 0,
+        expCorrect: "Да, при PL > 37° HP Bleed Valve закрывается, чтобы разгрузить двигатель при высоком режиме.",
+        expWrong: "Логика такая: при большом режиме тяги (PL > ~37°) HP bleed закрывается, чтобы не забирать слишком много энергии с компрессора высокого давления."
+    },
+    {
+        q: "Назначение HP thermal resistor в линии bleed:",
+        a: [
+            "Закрыть HP Bleed Valve при перегреве ~270°C",
+            "Открывать LP при низкой температуре",
+            "Включать вентилятор охлаждения",
+            "Защищать APU от обратного потока"
+        ],
+        correct: 0,
+        expCorrect: "Да, thermal resistor отключает HP bleed при перегреве — это дополнительный уровень защиты.",
+        expWrong: "HP thermal resistor не управляет LP и не включает вентилятор. Его задача — закрыть HP Bleed Valve при перегреве, около 270°C."
+    },
+    {
+        q: "Где установлен Bleed Shut-Off Valve (BSOV) относительно двигателя?",
+        a: [
+            "Сразу за firewall на линии bleed",
+            "Непосредственно на сопле двигателя",
+            "В зоне паков",
+            "В районе APU"
+        ],
+        correct: 0,
+        expCorrect: "Да, BSOV стоит сразу за firewall, чтобы отсечь воздух от двигателя при пожаре или отказе.",
+        expWrong: "BSOV не стоит в зоне паков или APU. Он именно за firewall — чтобы при пожаре в моторном отсеке можно было отсечь горячий воздух."
+    }
+    // можно дальше дополнять вопросами по той же схеме
+];
+
+let index = 0;
+let score = 0;
+
+function loadQuestion() {
+    const q = quiz[index];
+
+    document.getElementById("questionBox").innerText = q.q;
+    document.getElementById("progress").innerText =
+        "Вопрос " + (index + 1) + " из " + quiz.length;
+
+    let answers = q.a.map((text, i) => ({ text, index: i }));
+
+    for (let i = answers.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [answers[i], answers[j]] = [answers[j], answers[i]];
+    }
+
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    answers.forEach(ans => {
+        const btn = document.createElement("button");
+        btn.className = "btn";
+        btn.innerText = ans.text;
+        btn.onclick = () => checkAnswer(btn, ans.index);
+        answersDiv.appendChild(btn);
+    });
+
+    document.getElementById("explanation").innerText = "";
+    document.getElementById("nextBtn").style.display = "none";
+    document.getElementById("scoreBox").innerText = "Правильных: " + score;
+}
+
+function checkAnswer(button, choice) {
+    const q = quiz[index];
+    const buttons = document.querySelectorAll(".btn");
+    buttons.forEach(b => b.disabled = true);
+
+    if (choice === q.correct) {
+        button.classList.add("correct");
+        document.getElementById("explanation").innerText = q.expCorrect;
+        score++;
+    } else {
+        button.classList.add("wrong");
+        buttons.forEach(b => {
+            if (b.innerText === q.a[q.correct]) {
+                b.classList.add("correct");
+            }
+        });
+        document.getElementById("explanation").innerText = q.expWrong;
+    }
+
+    document.getElementById("nextBtn").style.display = "block";
+    document.getElementById("scoreBox").innerText = "Правильных: " + score;
+}
+
+function nextQuestion() {
+    index++;
+    if (index < quiz.length) {
+        loadQuestion();
+    } else {
+        const percent = Math.round(score / quiz.length * 100);
+        document.querySelector(".container").innerHTML =
+            "<h2 style='color:#ffcc00;'>Квиз завершён!</h2>" +
+            "<p>Результат: " + score + " из " + quiz.length + " (" + percent + "%)</p>";
+    }
+}
+
+loadQuestion();
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js');
+  }
+</script>
+</body>
+</html>
